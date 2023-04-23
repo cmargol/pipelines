@@ -1,4 +1,5 @@
 # Pipelines
+![Coverage](https://img.shields.io/badge/Coverage-93.3%25-brightgreen)
 
 The purpose of pipelines module is to provide a library based solely off of the standard Golang library for common
 patterns in data pipelines as well as some convenient function wrappers. 

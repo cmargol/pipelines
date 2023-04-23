@@ -79,9 +79,7 @@ func Merge[T any](cs ...<-chan T) chan T {
 	output := func(c <-chan T) {
 		defer wg.Done()
 		for v := range c {
-			select {
-			case out <- v:
-			}
+			out <- v
 		}
 	}
 

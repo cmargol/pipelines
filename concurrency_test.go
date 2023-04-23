@@ -55,7 +55,7 @@ func TestQueue(t *testing.T) {
 	fNonErrQueueEmpty := func(ctx context.Context) (int, error) {
 		return 0, errors.New("non-ErrQueueEmpty error")
 	}
-	queueChan, errorChan = Queue(ctx, fNonErrQueueEmpty, bufferSize, workers)
+	_, errorChan = Queue(ctx, fNonErrQueueEmpty, bufferSize, workers)
 	errorCount := 0
 	for range errorChan {
 		errorCount++

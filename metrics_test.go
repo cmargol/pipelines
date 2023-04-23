@@ -3,7 +3,6 @@ package pipelines
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -107,17 +106,64 @@ func TestMetricWrapperQueue(t *testing.T) {
 		mh      MetricsHandler
 	}
 	type testCase[T any] struct {
-		name string
-		args args[T]
-		want func(ctx context.Context) (T, error)
+		name            string
+		args            args[T]
+		concreteMH      *mockMetricHandler
+		wantErrCount    int
+		wantRecordCount int
 	}
+	var firstMH = &mockMetricHandler{}
+	var secondMH = &mockMetricHandler{}
 	tests := []testCase[int]{
-		// TODO: Add test cases.
+		{
+			name: "Test metrics are called as expected when there is no error",
+			args: args[int]{
+				f: func(ctx context.Context) (int, error) {
+					return 0, nil
+				},
+				service: "service",
+				stage:   "stage",
+				mh:      firstMH,
+			},
+			concreteMH:      firstMH,
+			wantErrCount:    0,
+			wantRecordCount: 1,
+		},
+		{
+			name: "Test metrics are updated as expected when there is an error",
+			args: args[int]{
+				f: func(ctx context.Context) (int, error) {
+					return 0, fmt.Errorf("an error")
+				},
+				service: "service",
+				stage:   "stage",
+				mh:      secondMH,
+			},
+			concreteMH:      secondMH,
+			wantErrCount:    1,
+			wantRecordCount: 1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := MetricWrapperQueue(tt.args.f, tt.args.service, tt.args.stage, tt.args.mh); !reflect.DeepEqual(got, tt.want) {
-
+			_, err := MetricWrapperQueue(tt.args.f, "service", "stage", tt.args.mh)(context.Background())
+			if tt.wantErrCount > 0 && err == nil {
+				t.Errorf("got error count = %d , want = %d", tt.concreteMH.errorCount, tt.wantErrCount)
+			}
+			if tt.concreteMH.recordCount != tt.wantRecordCount {
+				t.Errorf("got record count = %d , want = %d", tt.concreteMH.recordCount, tt.wantRecordCount)
+			}
+			if tt.concreteMH.errorCount != tt.wantErrCount {
+				t.Errorf("got error count = %d , want = %d", tt.concreteMH.errorCount, tt.wantErrCount)
+			}
+			if tt.concreteMH.executionTime <= 0 {
+				t.Errorf("want positve execution time, got : %s", tt.concreteMH.executionTime.String())
+			}
+			if tt.wantErrCount == 0 && tt.concreteMH.lastSuccessExecuted.Equal(time.Time{}) {
+				t.Errorf("last succesful time want non zero time, got : %s", tt.concreteMH.lastSuccessExecuted)
+			}
+			if tt.wantErrCount > 0 && !tt.concreteMH.lastSuccessExecuted.Equal(time.Time{}) {
+				t.Errorf("last succesful time should be zero time, got : %s", tt.concreteMH.lastSuccessExecuted)
 			}
 		})
 	}
@@ -130,18 +176,65 @@ func TestMetricWrapperWorker(t *testing.T) {
 		stage   string
 		mh      MetricsHandler
 	}
-	type testCase[T1 any, T2 any] struct {
-		name string
-		args args[T1, T2]
-		want func(T1) (T2, error)
+	type testCase[T any] struct {
+		name            string
+		args            args[int, int]
+		concreteMH      *mockMetricHandler
+		wantErrCount    int
+		wantRecordCount int
 	}
-	tests := []testCase[int, int]{
-		// TODO: Add test cases.
+	var firstMH = &mockMetricHandler{}
+	var secondMH = &mockMetricHandler{}
+	tests := []testCase[int]{
+		{
+			name: "Test metrics are called as expected when there is no error",
+			args: args[int, int]{
+				f: func(v int) (int, error) {
+					return 0, nil
+				},
+				service: "service",
+				stage:   "stage",
+				mh:      firstMH,
+			},
+			concreteMH:      firstMH,
+			wantErrCount:    0,
+			wantRecordCount: 1,
+		},
+		{
+			name: "Test metrics are updated as expected when there is an error",
+			args: args[int, int]{
+				f: func(v int) (int, error) {
+					return 0, fmt.Errorf("an error")
+				},
+				service: "service",
+				stage:   "stage",
+				mh:      secondMH,
+			},
+			concreteMH:      secondMH,
+			wantErrCount:    1,
+			wantRecordCount: 1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := MetricWrapperWorker(tt.args.f, tt.args.service, tt.args.stage, tt.args.mh); !reflect.DeepEqual(got, tt.want) {
-
+			_, err := MetricWrapperWorker(tt.args.f, "service", "stage", tt.args.mh)(1)
+			if tt.wantErrCount > 0 && err == nil {
+				t.Errorf("got error count = %d , want = %d", tt.concreteMH.errorCount, tt.wantErrCount)
+			}
+			if tt.concreteMH.recordCount != tt.wantRecordCount {
+				t.Errorf("got record count = %d , want = %d", tt.concreteMH.recordCount, tt.wantRecordCount)
+			}
+			if tt.concreteMH.errorCount != tt.wantErrCount {
+				t.Errorf("got error count = %d , want = %d", tt.concreteMH.errorCount, tt.wantErrCount)
+			}
+			if tt.concreteMH.executionTime <= 0 {
+				t.Errorf("want positve execution time, got : %s", tt.concreteMH.executionTime.String())
+			}
+			if tt.wantErrCount == 0 && tt.concreteMH.lastSuccessExecuted.Equal(time.Time{}) {
+				t.Errorf("last succesful time want non zero time, got : %s", tt.concreteMH.lastSuccessExecuted)
+			}
+			if tt.wantErrCount > 0 && !tt.concreteMH.lastSuccessExecuted.Equal(time.Time{}) {
+				t.Errorf("last succesful time should be zero time, got : %s", tt.concreteMH.lastSuccessExecuted)
 			}
 		})
 	}

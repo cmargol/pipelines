@@ -33,7 +33,7 @@ func NewPipelineErr(err error, service string, stage string) PipelineErr {
 }
 
 func (e PipelineErr) Error() string {
-	return e.Error()
+	return e.err.Error()
 }
 
 func (e PipelineErr) Service() string {

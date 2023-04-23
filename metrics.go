@@ -22,11 +22,11 @@ func MetricWrapperQueue[T any](f func(ctx context.Context) (T, error), service s
 		res, err := f(ctx)
 		if err != nil {
 			mh.IncrementErrorCount(service, stage)
-			mh.RecordExecutionTime(time.Now().Sub(now), service, stage, "fail")
+			mh.RecordExecutionTime(time.Since(now), service, stage, "fail")
 			return res, err
 		}
 		mh.RecordLastSuccessfulExecution(service, stage)
-		mh.RecordExecutionTime(time.Now().Sub(now), service, stage, "success")
+		mh.RecordExecutionTime(time.Since(now), service, stage, "success")
 		return res, err
 	}
 }
@@ -39,11 +39,11 @@ func MetricWrapperWorker[T1, T2 any](f func(T1) (T2, error), service string, sta
 		res, err := f(v)
 		if err != nil {
 			mh.IncrementErrorCount(service, stage)
-			mh.RecordExecutionTime(time.Now().Sub(now), service, stage, "fail")
+			mh.RecordExecutionTime(time.Since(now), service, stage, "fail")
 			return res, err
 		}
 		mh.RecordLastSuccessfulExecution(service, stage)
-		mh.RecordExecutionTime(time.Now().Sub(now), service, stage, "success")
+		mh.RecordExecutionTime(time.Since(now), service, stage, "success")
 		return res, nil
 	}
 }
@@ -56,11 +56,11 @@ func MetricWrapperDequeue[T any](f func(T) error, service string, stage string, 
 		err := f(v)
 		if err != nil {
 			mh.IncrementErrorCount(service, stage)
-			mh.RecordExecutionTime(time.Now().Sub(now), service, stage, "fail")
+			mh.RecordExecutionTime(time.Since(now), service, stage, "fail")
 			return err
 		}
 		mh.RecordLastSuccessfulExecution(service, stage)
-		mh.RecordExecutionTime(time.Now().Sub(now), service, stage, "success")
+		mh.RecordExecutionTime(time.Since(now), service, stage, "success")
 		return nil
 	}
 }
